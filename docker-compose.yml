@@ -1,0 +1,93 @@
+version: "3.8"
+
+services:
+  # Primary Nodes
+  node1:
+    build: .
+    container_name: mini-redis-node1
+    command: python -m server.node --host 0.0.0.0 --port 6380 --wal /app/data/node1.wal --capacity 10000
+    ports:
+      - "6380:6380"
+    volumes:
+      - node1_data:/app/data
+    restart: unless-stopped
+
+  node2:
+    build: .
+    container_name: mini-redis-node2
+    command: python -m server.node --host 0.0.0.0 --port 6381 --wal /app/data/node2.wal --capacity 10000
+    ports:
+      - "6381:6381"
+    volumes:
+      - node2_data:/app/data
+    restart: unless-stopped
+
+  node3:
+    build: .
+    container_name: mini-redis-node3
+    command: python -m server.node --host 0.0.0.0 --port 6382 --wal /app/data/node3.wal --capacity 10000
+    ports:
+      - "6382:6382"
+    volumes:
+      - node3_data:/app/data
+    restart: unless-stopped
+
+  # Replica Nodes
+  node1-replica:
+    build: .
+    container_name: mini-redis-node1-replica
+    command: python -m server.node --host 0.0.0.0 --port 6383 --wal /app/data/node1_replica.wal --capacity 10000
+    ports:
+      - "6383:6383"
+    volumes:
+      - node1_repl_data:/app/data
+    restart: unless-stopped
+
+  node2-replica:
+    build: .
+    container_name: mini-redis-node2-replica
+    command: python -m server.node --host 0.0.0.0 --port 6384 --wal /app/data/node2_replica.wal --capacity 10000
+    ports:
+      - "6384:6384"
+    volumes:
+      - node2_repl_data:/app/data
+    restart: unless-stopped
+
+  node3-replica:
+    build: .
+    container_name: mini-redis-node3-replica
+    command: python -m server.node --host 0.0.0.0 --port 6385 --wal /app/data/node3_replica.wal --capacity 10000
+    ports:
+      - "6385:6385"
+    volumes:
+      - node3_repl_data:/app/data
+    restart: unless-stopped
+
+  # Router (Client Gateway)
+  router:
+    build: .
+    container_name: mini-redis-router
+    command: >
+      python -m cluster.router
+      --host 0.0.0.0
+      --port 6379
+      --primaries node1:6380 node2:6381 node3:6382
+      --replicas node1-replica:6383 node2-replica:6384 node3-replica:6385
+    ports:
+      - "6379:6379"
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node1-replica
+      - node2-replica
+      - node3-replica
+    restart: unless-stopped
+
+volumes:
+  node1_data:
+  node2_data:
+  node3_data:
+  node1_repl_data:
+  node2_repl_data:
+  node3_repl_data:
